@@ -11,11 +11,21 @@ genmit is a command-line tool that automatically generates Git commit messages u
 
 - Automatically analyzes Git changes (staged and unstaged files)
 - Uses OpenAI API to generate Conventional Commits compliant messages
+- Multi-line commit message format with detailed bullet points
 - Supports custom OpenAI-compatible APIs (DeepSeek, Alibaba Qwen, etc.)
-- Customizable model and prompt templates
+- Customizable model, prompt templates, and output language
+- Automatic diff truncation for large changes
 - Interactive confirmation with optional auto-commit
 
 ## Installation
+
+### Download pre-built binaries
+
+Download from the [release](../release) page:
+
+- **Windows**: `genmit-windows-amd64.exe`
+- **Linux**: `genmit-linux-amd64` / `genmit-linux-arm64`
+- **macOS**: `genmit-darwin-amd64` (Intel) / `genmit-darwin-arm64` (Apple Silicon)
 
 ### Build from source
 
@@ -45,6 +55,12 @@ genmit config baseurl https://api.openai.com/v1
 # Set model
 genmit config model gpt-4o-mini
 
+# Set commit message language (en, zh, ja, es, fr, etc.)
+genmit config lang en
+
+# Set max diff size (characters, 0 = no limit)
+genmit config maxdiffsize 10000
+
 # Set custom prompt template
 genmit config prompt "Your custom prompt..."
 ```
@@ -57,7 +73,9 @@ genmit config prompt "Your custom prompt..."
 baseurl=https://api.openai.com/v1
 apikey=sk-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
 model=gpt-4o-mini
-prompt=You are a helpful assistant that generates Git commit messages...
+lang=en
+maxdiffsize=10000
+prompt=You are an expert Git commit message generator...
 ```
 
 ### List configuration
@@ -71,10 +89,12 @@ Output:
 ```
 Config file: C:\Users\zeroicey\.genmit
 
-baseurl = https://api.openai.com/v1
-apikey  = sk-9****xxxx
-model   = gpt-4o-mini
-prompt  = You are a helpful assistant that generates Git commit messag...
+baseurl     = https://api.openai.com/v1
+apikey      = sk-9****xxxx
+model       = gpt-4o-mini
+lang        = en
+maxdiffsize = 10000
+prompt      = You are an expert Git commit message generator...
 ```
 
 ## Usage
@@ -113,6 +133,24 @@ genmit config <key> <value>
    - Enter `y` or `yes` → auto commit
    - Enter anything else → only show message, commit manually
 
+## Commit Message Format
+
+genmit generates multi-line commit messages following Conventional Commits:
+
+```
+feat(dashboard): add moment submission frequency heatmap
+- Add MomentHeatmap component to Dashboard page showing daily submission count
+- Use react-calendar-heatmap library for heatmap rendering with color intensity
+- Implement hover tooltip showing date and corresponding moment count
+- Support responsive design for mobile, tablet, and desktop screen sizes
+- Add /moments/statistics backend endpoint to aggregate submission data by date
+- Implement related DTO, VO, Service, Repository layer logic
+- Add useMomentStatistics Hook for requesting and managing statistics data
+- Integrate dark mode color scheme using Tailwind CSS color system
+```
+
+The output language is controlled by the `lang` configuration option.
+
 ## Supported API Providers
 
 genmit supports all OpenAI-compatible APIs:
@@ -134,19 +172,44 @@ genmit config baseurl https://dashscope.aliyuncs.com/compatible-mode/v1
 genmit config model qwen-plus
 ```
 
+## Configuration Options
+
+| Option | Description | Default |
+|--------|-------------|---------|
+| `apikey` | OpenAI API key | *required* |
+| `baseurl` | API base URL | `https://api.openai.com/v1` |
+| `model` | Model name | `gpt-4o-mini` |
+| `lang` | Commit message language | `en` |
+| `maxdiffsize` | Max diff characters (0 = unlimited) | `10000` |
+| `prompt` | Custom prompt template | (built-in template) |
+
 ## Default prompt template
 
 ```
-You are a helpful assistant that generates Git commit messages.
-Given the following git diff output, generate a concise and descriptive commit message.
-Follow conventional commit format: type(scope): description
+You are an expert Git commit message generator. Analyze the following git diff and generate a clear, detailed commit message.
 
-Types: feat, fix, docs, style, refactor, test, chore
+## Commit Message Format
 
-Git diff:
+### First Line: Title
+- Use conventional commit format: type(scope): description
+- Types: feat(new feature), fix(bug fix), docs(documentation), style(formatting), refactor(code restructuring), test(tests), chore(build/tooling)
+- Keep title concise and descriptive (under 50 characters)
+
+### Following Lines: Detailed Changes
+- Use "- " prefix for bullet point list
+- Each bullet point describes a specific change
+- Cover all aspects: frontend, backend, config, docs, etc.
+- Use professional and accurate technical terminology
+- Organize logically (core functionality first, then auxiliary; backend before frontend)
+
+### Language
+- Generate the entire commit message in {lang} language
+
+## Git Diff Content
+
 {diff}
 
-Commit message:
+## Generate Commit Message
 ```
 
 ## Troubleshooting
@@ -165,6 +228,13 @@ git config --global user.email "your.email@example.com"
 - Check if API Key is correct
 - Check network connection
 - Verify API base URL and model name match
+
+### Diff too large warning
+
+If you see `⚠️ Diff too large`, the diff has been truncated to fit within `maxdiffsize`. To:
+
+- Increase the limit: `genmit config maxdiffsize 50000`
+- Disable truncation: `genmit config maxdiffsize 0`
 
 ## License
 
