@@ -95,3 +95,39 @@ func Commit(dir, message string) error {
 	}
 	return nil
 }
+
+// TruncateDiff truncates diff to maxLen, preserving file headers
+// Returns truncated diff and whether truncation occurred
+func TruncateDiff(diff string, maxLen int) (string, bool) {
+	// If diff length is within limit, return as-is
+	if len(diff) <= maxLen {
+		return diff, false
+	}
+
+	// Reserve space for truncation suffix
+	suffix := "\n... (truncated)"
+	maxContentLen := maxLen - len(suffix)
+
+	if maxContentLen <= 0 {
+		return suffix, true
+	}
+
+	// Try to truncate at a hunk boundary (after @@ line) for cleaner output
+	truncated := diff[:maxContentLen]
+
+	// Look for the last hunk header (@@) to truncate there
+	lastHunkIdx := strings.LastIndex(truncated, "\n@@")
+	if lastHunkIdx > 0 {
+		// Find the end of the hunk header line
+		nextNewline := strings.Index(truncated[lastHunkIdx+1:], "\n")
+		if nextNewline >= 0 {
+			// Truncate at the end of the hunk header line
+			cutoff := lastHunkIdx + nextNewline + 1
+			if cutoff < len(truncated) {
+				truncated = truncated[:cutoff]
+			}
+		}
+	}
+
+	return truncated + suffix, true
+}

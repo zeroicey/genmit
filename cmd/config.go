@@ -17,7 +17,7 @@ Commands:
   genmit config list              Show all configuration values
   genmit config <key> <value>     Set a configuration value
 
-Supported keys: apikey, baseurl, model, prompt`,
+Supported keys: apikey, baseurl, model, prompt, maxdiffsize, lang`,
 	RunE: runConfig,
 }
 
@@ -60,10 +60,12 @@ func runConfigList() error {
 		apiKey = apiKey[:4] + "****" + apiKey[len(apiKey)-4:]
 	}
 
-	fmt.Printf("baseurl = %s\n", cfg.BaseURL)
-	fmt.Printf("apikey  = %s\n", apiKey)
-	fmt.Printf("model   = %s\n", cfg.Model)
-	fmt.Printf("prompt  = %s\n", truncateString(cfg.Prompt, 60))
+	fmt.Printf("baseurl     = %s\n", cfg.BaseURL)
+	fmt.Printf("apikey      = %s\n", apiKey)
+	fmt.Printf("model       = %s\n", cfg.Model)
+	fmt.Printf("lang        = %s\n", cfg.Lang)
+	fmt.Printf("maxdiffsize = %d\n", cfg.MaxDiffSize)
+	fmt.Printf("prompt      = %s\n", truncateString(cfg.Prompt, 60))
 
 	return nil
 }
@@ -73,14 +75,16 @@ func runConfigSet(key, value string) error {
 
 	// Validate key
 	validKeys := map[string]bool{
-		"apikey":  true,
-		"baseurl": true,
-		"model":   true,
-		"prompt":  true,
+		"apikey":     true,
+		"baseurl":    true,
+		"model":      true,
+		"prompt":     true,
+		"maxdiffsize": true,
+		"lang":       true,
 	}
 
 	if !validKeys[key] {
-		return fmt.Errorf("invalid key '%s'. Valid keys are: apikey, baseurl, model, prompt", key)
+		return fmt.Errorf("invalid key '%s'. Valid keys are: apikey, baseurl, model, prompt, maxdiffsize, lang", key)
 	}
 
 	// Set the configuration value

@@ -10,10 +10,12 @@ import (
 
 // Config represents the application configuration
 type Config struct {
-	BaseURL string
-	APIKey  string
-	Prompt  string
-	Model   string
+	BaseURL     string
+	APIKey      string
+	Prompt      string
+	Model       string
+	MaxDiffSize int
+	Lang        string
 }
 
 // ConfigPath returns the path to the config file (~/.genmit)
@@ -52,9 +54,11 @@ func Load() (*Config, error) {
 	defer file.Close()
 
 	config := &Config{
-		BaseURL: "https://api.openai.com/v1",
-		Prompt:  getDefaultPrompt(),
-		Model:   "gpt-4o-mini",
+		BaseURL:     "https://api.openai.com/v1",
+		Prompt:      getDefaultPrompt(),
+		Model:       "gpt-4o-mini",
+		MaxDiffSize: 10000,
+		Lang:        "en",
 	}
 
 	scanner := bufio.NewScanner(file)
@@ -81,6 +85,10 @@ func Load() (*Config, error) {
 			config.Prompt = value
 		case "model":
 			config.Model = value
+		case "maxdiffsize":
+			fmt.Sscanf(value, "%d", &config.MaxDiffSize)
+		case "lang":
+			config.Lang = value
 		}
 	}
 
@@ -110,10 +118,33 @@ func createTemplate(path string) error {
 baseurl=https://api.openai.com/v1
 apikey=sk-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
 model=gpt-4o-mini
-prompt=You are a helpful assistant that generates Git commit messages. Given the following git diff output, generate a concise and descriptive commit message. Follow conventional commit format: type(scope): description. Types: feat, fix, docs, style, refactor, test, chore. Git diff:
+maxdiffsize=10000
+lang=en
+prompt=You are an expert Git commit message generator. Analyze the following git diff and generate a clear, detailed commit message.
+
+## Commit Message Format
+
+### First Line: Title
+- Use conventional commit format: type(scope): description
+- Types: feat(new feature), fix(bug fix), docs(documentation), style(formatting), refactor(code restructuring), test(tests), chore(build/tooling)
+- Keep title concise and descriptive (under 50 characters)
+
+### Following Lines: Detailed Changes
+- Use "- " prefix for bullet point list
+- Each bullet point describes a specific change
+- Cover all aspects: frontend, backend, config, docs, etc.
+- Use professional and accurate technical terminology
+- Organize logically (core functionality first, then auxiliary; backend before frontend)
+
+### Language
+- Generate the entire commit message in {lang} language
+
+## Git Diff Content
+
 {diff}
 
-Commit message:
+## Generate Commit Message
+
 `
 
 	_, err = file.WriteString(template)
@@ -175,10 +206,31 @@ func Set(key, value string) error {
 
 // getDefaultPrompt returns the default prompt template
 func getDefaultPrompt() string {
-	return `You are a helpful assistant that generates Git commit messages. Given the following git diff output, generate a concise and descriptive commit message. Follow conventional commit format: type(scope): description. Types: feat, fix, docs, style, refactor, test, chore. Git diff:
+	return `You are an expert Git commit message generator. Analyze the following git diff and generate a clear, detailed commit message.
+
+## Commit Message Format
+
+### First Line: Title
+- Use conventional commit format: type(scope): description
+- Types: feat(new feature), fix(bug fix), docs(documentation), style(formatting), refactor(code restructuring), test(tests), chore(build/tooling)
+- Keep title concise and descriptive (under 50 characters)
+
+### Following Lines: Detailed Changes
+- Use "- " prefix for bullet point list
+- Each bullet point describes a specific change
+- Cover all aspects: frontend, backend, config, docs, etc.
+- Use professional and accurate technical terminology
+- Organize logically (core functionality first, then auxiliary; backend before frontend)
+
+### Language
+- Generate the entire commit message in {lang} language
+
+## Git Diff Content
+
 {diff}
 
-Commit message:
+## Generate Commit Message
+
 `
 }
 
