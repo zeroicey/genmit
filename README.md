@@ -68,15 +68,41 @@ genmit config prompt "Your custom prompt..."
 
 ### 配置文件示例
 
-`~/.genmit`:
+`~/.genmit` (TOML 格式):
 
-```ini
-baseurl=https://api.openai.com/v1
-apikey=sk-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
-model=gpt-4o-mini
-lang=zh
-maxdiffsize=10000
-prompt=You are an expert Git commit message generator...
+```toml
+baseurl = "https://api.openai.com/v1"
+apikey = "sk-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+model = "gpt-4o-mini"
+lang = "zh"
+maxdiffsize = 10000
+
+prompt = """
+You are an expert Git commit message generator. Analyze the following git diff and generate a clear, detailed commit message.
+
+## Commit Message Format
+
+### First Line: Title
+- Use conventional commit format: type(scope): description
+- Types: feat(new feature), fix(bug fix), docs(documentation), style(formatting), refactor(code restructuring), test(tests), chore(build/tooling)
+- Keep title concise and descriptive (under 50 characters)
+
+### Following Lines: Detailed Changes
+- Use "- " prefix for bullet point list
+- Each bullet point describes a specific change
+- Cover all aspects: frontend, backend, config, docs, etc.
+- Use professional and accurate technical terminology
+- Organize logically (core functionality first, then auxiliary; backend before frontend)
+
+### Language
+- Generate the entire commit message in {lang} language
+
+## Git Diff Content
+
+{diff}
+
+## Generate Commit Message
+"""
 ```
 
 ### 查看配置
