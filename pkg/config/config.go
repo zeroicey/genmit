@@ -62,34 +62,80 @@ func Load() (*Config, error) {
 	}
 
 	scanner := bufio.NewScanner(file)
+	var currentKey string
+	var promptLines []string
+
 	for scanner.Scan() {
-		line := strings.TrimSpace(scanner.Text())
-		if line == "" || strings.HasPrefix(line, "#") {
+		line := scanner.Text()
+		trimmed := strings.TrimSpace(line)
+
+		// Skip empty lines and comments, but only if not in a multi-line value
+		if (trimmed == "" || strings.HasPrefix(trimmed, "#")) && currentKey == "" {
 			continue
 		}
 
-		parts := strings.SplitN(line, "=", 2)
-		if len(parts) != 2 {
-			continue
+		// Check if this is a key=value line
+		if strings.Contains(line, "=") && currentKey == "" {
+			parts := strings.SplitN(line, "=", 2)
+			if len(parts) == 2 {
+				key := strings.TrimSpace(strings.ToLower(parts[0]))
+				value := strings.TrimSpace(parts[1])
+
+				switch key {
+				case "baseurl":
+					config.BaseURL = value
+				case "apikey":
+					config.APIKey = value
+				case "model":
+					config.Model = value
+				case "maxdiffsize":
+					fmt.Sscanf(value, "%d", &config.MaxDiffSize)
+				case "lang":
+					config.Lang = value
+				case "prompt":
+					currentKey = "prompt"
+					promptLines = []string{value}
+				}
+			}
+		} else if currentKey == "prompt" {
+			// Continue collecting prompt lines
+			promptLines = append(promptLines, line)
 		}
 
-		key := strings.TrimSpace(strings.ToLower(parts[0]))
-		value := strings.TrimSpace(parts[1])
+		// Check if we should end the prompt collection
+		// (next line starts with a non-comment, non-empty key=value)
+		if currentKey != "" && trimmed != "" && !strings.HasPrefix(trimmed, "#") &&
+			strings.Contains(trimmed, "=") && !strings.HasPrefix(strings.ToLower(trimmed), "prompt=") {
+			// Save the accumulated prompt
+			config.Prompt = strings.Join(promptLines, "\n")
+			currentKey = ""
+			promptLines = nil
 
-		switch key {
-		case "baseurl":
-			config.BaseURL = value
-		case "apikey":
-			config.APIKey = value
-		case "prompt":
-			config.Prompt = value
-		case "model":
-			config.Model = value
-		case "maxdiffsize":
-			fmt.Sscanf(value, "%d", &config.MaxDiffSize)
-		case "lang":
-			config.Lang = value
+			// Process this new line
+			parts := strings.SplitN(trimmed, "=", 2)
+			if len(parts) == 2 {
+				key := strings.TrimSpace(strings.ToLower(parts[0]))
+				value := strings.TrimSpace(parts[1])
+
+				switch key {
+				case "baseurl":
+					config.BaseURL = value
+				case "apikey":
+					config.APIKey = value
+				case "model":
+					config.Model = value
+				case "maxdiffsize":
+					fmt.Sscanf(value, "%d", &config.MaxDiffSize)
+				case "lang":
+					config.Lang = value
+				}
+			}
 		}
+	}
+
+	// Save prompt if we were still collecting it at EOF
+	if currentKey == "prompt" && len(promptLines) > 0 {
+		config.Prompt = strings.Join(promptLines, "\n")
 	}
 
 	if err := scanner.Err(); err != nil {

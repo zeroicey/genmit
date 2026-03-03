@@ -24,3 +24,5 @@ release/
 
 # Claude
 .claude/
+
+CLAUDE.md

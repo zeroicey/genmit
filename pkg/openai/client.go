@@ -37,14 +37,14 @@ func (c *Client) GenerateCommitMessage(promptTemplate, diff, model string) (stri
 			Messages: []openai.ChatCompletionMessage{
 				{
 					Role:    openai.ChatMessageRoleSystem,
-					Content: "You are a helpful assistant that generates concise Git commit messages.",
+					Content: "You are a helpful assistant that generates Git commit messages following the format specified in the user's prompt.",
 				},
 				{
 					Role:    openai.ChatMessageRoleUser,
 					Content: prompt,
 				},
 			},
-			MaxTokens:   200,
+			MaxTokens:   500,
 			Temperature: 0.3,
 		},
 	)
@@ -59,15 +59,14 @@ func (c *Client) GenerateCommitMessage(promptTemplate, diff, model string) (stri
 
 	message := strings.TrimSpace(resp.Choices[0].Message.Content)
 
-	// Clean up the message - remove quotes if present
+	// Clean up the message - remove surrounding quotes if present
 	message = strings.Trim(message, "\"")
 	message = strings.Trim(message, "'")
 
-	// Take only the first line if there are multiple lines
-	lines := strings.Split(message, "\n")
-	if len(lines) > 0 {
-		message = strings.TrimSpace(lines[0])
-	}
+	// Clean up any markdown code blocks
+	message = strings.TrimPrefix(message, "```")
+	message = strings.TrimSuffix(message, "```")
+	message = strings.TrimSpace(message)
 
 	return message, nil
 }
